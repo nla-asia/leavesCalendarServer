@@ -126,6 +126,6 @@ class LeaveTypeAPIController extends AppBaseController
 
         $leaveType->delete();
 
-        return $this->sendSuccess('Leave Type deleted successfully');
+        return $this->sendResponse([],'Leave Type deleted successfully');
     }
 }

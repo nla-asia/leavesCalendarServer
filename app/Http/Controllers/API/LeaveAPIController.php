@@ -35,11 +35,11 @@ class LeaveAPIController extends AppBaseController
      */
     public function index(Request $request)
     {
-        $leaves = $this->leaveRepository->all(
-            $request->except(['skip', 'limit']),
-            $request->get('skip'),
-            $request->get('limit')
-        );
+        $leaves = Leave::join("employees","employees.id","=","leaves.employee_id")
+        ->join("leave_types","leave_types.id","=","leaves.type")
+        ->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->orderBy("leaves.created_at","DESC")
+        ->get();
 
         return $this->sendResponse($leaves->toArray(), 'Leaves retrieved successfully');
     }
@@ -56,8 +56,10 @@ class LeaveAPIController extends AppBaseController
         $filters = $request->except(['skip', 'limit']);
         $filters['employee_id'] = Auth::id();
         $leaves = Leave::join("employees","employees.id","=","leaves.employee_id")
+        ->join("leave_types","leave_types.id","=","leaves.type")
         ->where("leaves.employee_id", $filters['employee_id'])
-        ->select("leaves.*", "employees.name as employee_name")
+        ->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->orderBy("leaves.created_at","DESC")
         ->get();
 
         return $this->sendResponse($leaves->toArray(), 'Leaves retrieved successfully');
@@ -146,6 +148,6 @@ class LeaveAPIController extends AppBaseController
 
         $leave->delete();
 
-        return $this->sendSuccess('Leave deleted successfully');
+        return $this->sendResponse([],'Leave deleted successfully');
     }
 }

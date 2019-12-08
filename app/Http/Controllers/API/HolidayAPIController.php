@@ -126,6 +126,6 @@ class HolidayAPIController extends AppBaseController
 
         $holiday->delete();
 
-        return $this->sendSuccess('Holiday deleted successfully');
+        return $this->sendResponse([],'Holiday deleted successfully');
     }
 }
