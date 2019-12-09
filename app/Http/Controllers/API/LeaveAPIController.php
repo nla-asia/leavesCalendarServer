@@ -150,4 +150,73 @@ class LeaveAPIController extends AppBaseController
 
         return $this->sendResponse([],'Leave deleted successfully');
     }
+
+
+
+    private static function getCsv($columnNames, $rows, $fileName = 'file.csv') {
+     
+        $headers = [
+            "Content-Encoding"=> "UTF-8",
+            "Content-type" => "text/csv; charset=UTF-8",
+            "Content-Disposition" => "attachment; filename=" . $fileName,
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+        $callback = function() use ($columnNames, $rows ) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columnNames);
+            foreach ($rows as $row) {
+                fputcsv($file, $row);
+            }
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
+    }
+
+
+
+
+    /**
+     *  export Leave. in pdf
+     * GET|HEAD /leaves/{id}
+     *
+     * @param Request
+     *
+     * @return Response
+     */
+    public function export_pdf(Request $request)
+    {
+
+
+        return $this->sendResponse($request->all(), 'Leave exported successfully');
+    }
+
+
+
+    public function export_excel(Request $request){
+        $headers = ['ID','Employee Name', 'Leave Type', 'Start Date', 'End Date'];
+        $rows = [];
+        $start = $request->start_date;
+        $end = $request->end_date;
+        $employee_id = $request->employee_id;
+
+        $leaves =  Leave::join("employees","employees.id","=","leaves.employee_id")
+        ->join("leave_types","leave_types.id","=","leaves.type")
+        ->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->orderBy("leaves.created_at","ASC")
+        ->get();
+
+        foreach($leaves as $l){
+
+             $rows[] = [$l->id, $l->employee_name, $l->leave_name, $l->start_date, $l->end_date];
+        }
+
+        return self::getCsv($headers, $rows, 'leaves_history.xls');
+    }
+
+
+
+
 }

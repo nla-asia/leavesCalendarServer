@@ -25,11 +25,13 @@ Route::middleware(['auth:api'])->group(function () {
     Route::post('employees/refresh_token', 'EmployeeAPIController@refresh');
     Route::get('employees', 'EmployeeAPIController@index');
 
+    Route::get("leaves/export_excel", 'LeaveAPIController@export_excel');
+    Route::get("leaves/export_pdf", 'LeaveAPIController@export_pdf');
     Route::get("leaves/mine", 'LeaveAPIController@my_index');
     Route::resource('leaves', 'LeaveAPIController');
     Route::resource('holidays', 'HolidayAPIController');
     Route::resource('leave_types', 'LeaveTypeAPIController');
-    
+ 
 
 });
 
