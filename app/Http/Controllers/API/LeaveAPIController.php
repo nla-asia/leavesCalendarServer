@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\AppBaseController;
 use Response;
 use Auth;
+use PDF;
 
 /**
  * Class LeaveController
@@ -35,9 +36,25 @@ class LeaveAPIController extends AppBaseController
      */
     public function index(Request $request)
     {
+
+        $start = $request->start_date;
+        $end = $request->end_date;
+        $employee_id = $request->employee_id;
+
         $leaves = Leave::join("employees","employees.id","=","leaves.employee_id")
-        ->join("leave_types","leave_types.id","=","leaves.type")
-        ->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->join("leave_types","leave_types.id","=","leaves.type");
+
+        if(!empty($start)){
+            $leaves = $leaves->whereDate("leaves.created_at",">=", $start);
+            }
+            if(!empty($end)){
+                $leaves = $leaves->whereDate("leaves.created_at","<=", $end);
+            }
+            if(!empty($employee_id)){
+                $leaves = $leaves->where("leaves.employee_id", $employee_id);
+            }
+
+        $leaves = $leaves->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
         ->orderBy("leaves.created_at","DESC")
         ->get();
 
@@ -189,13 +206,6 @@ class LeaveAPIController extends AppBaseController
     public function export_pdf(Request $request)
     {
 
-
-        return $this->sendResponse($request->all(), 'Leave exported successfully');
-    }
-
-
-
-    public function export_excel(Request $request){
         $headers = ['ID','Employee Name', 'Leave Type', 'Start Date', 'End Date'];
         $rows = [];
         $start = $request->start_date;
@@ -203,17 +213,58 @@ class LeaveAPIController extends AppBaseController
         $employee_id = $request->employee_id;
 
         $leaves =  Leave::join("employees","employees.id","=","leaves.employee_id")
-        ->join("leave_types","leave_types.id","=","leaves.type")
-        ->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->join("leave_types","leave_types.id","=","leaves.type");
+        if(!empty($start)){
+        $leaves = $leaves->whereDate("leaves.created_at",">=", $start);
+        }
+        if(!empty($end)){
+            $leaves = $leaves->whereDate("leaves.created_at","<=", $end);
+        }
+        if(!empty($employee_id)){
+            $leaves = $leaves->where("leaves.employee_id", $employee_id);
+        }
+        $leaves = $leaves->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
+        ->orderBy("leaves.created_at","ASC")
+        ->get();
+
+          // Send data to the view using loadView function of PDF facade
+            $pdf = PDF::loadView('leaves_export', ["leaves"=>$leaves]);
+            // If you want to store the generated pdf to the server then you can use the store function
+            $pdf->save(storage_path().'_filename.pdf');
+            // Finally, you can download the file using download function
+            return $pdf->download('leaves.pdf');
+
+    }
+
+
+
+    public function export_excel(Request $request){
+        $headers = ['ID','Employee Name', 'Leave Type', 'Start Date', 'End Date','Reason'];
+        $rows = [];
+        $start = $request->start_date;
+        $end = $request->end_date;
+        $employee_id = $request->employee_id;
+
+        $leaves =  Leave::join("employees","employees.id","=","leaves.employee_id")
+        ->join("leave_types","leave_types.id","=","leaves.type");
+             if(!empty($start)){
+            $leaves = $leaves->whereDate("leaves.created_at",">=", $start);
+            }
+            if(!empty($end)){
+                $leaves = $leaves->whereDate("leaves.created_at","<=", $end);
+            }
+            if(!empty($employee_id)){
+                $leaves = $leaves->where("leaves.employee_id", $employee_id);
+            }
+        $leaves = $leaves->select("leaves.*", "employees.name as employee_name","leave_types.name as leave_name")
         ->orderBy("leaves.created_at","ASC")
         ->get();
 
         foreach($leaves as $l){
-
-             $rows[] = [$l->id, $l->employee_name, $l->leave_name, $l->start_date, $l->end_date];
+             $rows[] = [$l->id, $l->employee_name, $l->leave_name, $l->start_date, $l->end_date, $l->reason];
         }
 
-        return self::getCsv($headers, $rows, 'leaves_history.xls');
+        return self::getCsv($headers, $rows, 'leaves_history.csv');
     }
 
 
